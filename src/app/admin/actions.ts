@@ -9,7 +9,7 @@ import { requireRole } from "@/lib/auth";
 import { MAX_SHEET_ROWS } from "@/lib/constants";
 import { chunk } from "@/lib/utils";
 import { readSheet, SheetError } from "@/lib/sheets";
-import { activeHodExists, createUserAccount, tempPassword } from "@/lib/users";
+import { accountEmail, activeHodExists, createUserAccount, EMAIL_DOMAIN_HINT, tempPassword } from "@/lib/users";
 import { redirect } from "next/navigation";
 
 const code = z.string().trim().regex(/^[A-Za-z0-9._-]{1,20}$/, "Code may contain only letters, numbers, . _ - (max 20).").transform((v) => v.toUpperCase());
@@ -85,10 +85,10 @@ export async function unassignSubject(_p: ActionState, fd: FormData): Promise<Ac
 const phone = z.string().trim().regex(/^[0-9+ -]{7,15}$/, "Invalid phone number.").optional().or(z.literal("").transform(() => undefined));
 
 const userSchema = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("student"), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: z.email("Enter a valid email.").max(120), roll_no: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,20}$/, "Roll number must be 4-20 letters/numbers."), course_id: z.uuid("Select a course."), semester: z.coerce.number().int().min(1).max(12), phone }),
-  z.object({ role: z.enum(["teacher", "hod"]), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: z.email("Enter a valid email.").max(120), department_id: z.uuid("Select a department.") }),
-  z.object({ role: z.literal("admin"), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: z.email("Enter a valid email.").max(120) }),
-]);
+  z.object({ role: z.literal("student"), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: accountEmail, roll_no: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,20}$/, "Roll number must be 4-20 letters/numbers."), course_id: z.uuid("Select a course."), semester: z.coerce.number().int().min(1).max(12), phone }),
+  z.object({ role: z.enum(["teacher", "hod"]), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: accountEmail, department_id: z.uuid("Select a department.") }),
+  z.object({ role: z.literal("admin"), full_name: z.string().trim().min(2, "Enter a name.").max(120), email: accountEmail }),
+], { error: "Select a role." });
 
 export async function createUser(_p: ActionState, fd: FormData): Promise<ActionState> {
   const actor = await requireRole("admin");
@@ -274,7 +274,7 @@ export async function previewBulkUsers(_p: ActionState, fd: FormData): Promise<A
       row.semester = Number(cells.semester);
     }
     if (cells.name.length < 2 || cells.name.length > 120) row.error = "Name must be 2-120 characters";
-    else if (!z.email().safeParse(row.email).success) row.error = "Invalid email";
+    else if (!accountEmail.safeParse(row.email).success) row.error = `Email must end with ${EMAIL_DOMAIN_HINT}`;
     else if (takenEmail.has(row.email)) row.error = "This email is already registered";
     else if (seenE.has(row.email)) row.error = "Duplicate email in the sheet";
     else if (role === "student" && !/^[A-Z0-9]{4,20}$/.test(row.roll!)) row.error = "Roll number must be 4-20 letters/numbers";

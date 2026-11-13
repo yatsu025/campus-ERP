@@ -1,7 +1,19 @@
 import "server-only";
 import { randomInt } from "node:crypto";
+import { z } from "zod";
 import { admin } from "@/lib/supabase/admin";
 import type { Role } from "@/lib/constants";
+
+/** Admin-created accounts are limited to these email domains; every other domain is rejected. */
+export const ALLOWED_EMAIL_DOMAINS = ["united.ac.in", "gmail.com"] as const;
+
+/** Human-readable allow-list, e.g. "@united.ac.in or @gmail.com". */
+export const EMAIL_DOMAIN_HINT = ALLOWED_EMAIL_DOMAINS.map((d) => `@${d}`).join(" or ");
+
+const ALLOWED_EMAIL_RE = new RegExp(`^[A-Za-z0-9._%+-]+@(?:${ALLOWED_EMAIL_DOMAINS.map((d) => d.replace(/\./g, "\\.")).join("|")})$`, "i");
+
+/** Email rule for accounts created from the Admin panel: valid format and an allowed domain. */
+export const accountEmail = z.string().trim().max(120, "Email is too long.").regex(ALLOWED_EMAIL_RE, `Enter a valid email ending with ${EMAIL_DOMAIN_HINT}.`);
 
 /** Random temporary password (12 chars, upper+lower+digit). Excludes ambiguous characters (0/O, 1/l). */
 export function tempPassword(): string {

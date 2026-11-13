@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, ROLE_LABEL, type Role } from "@/lib/constants";
 import { cn, fmtDate, isUuid, pageParam, safeLike, strParam } from "@/lib/utils";
+import { EMAIL_DOMAIN_HINT } from "@/lib/users";
 import { confirmBulkUsers, createUser, previewBulkUsers } from "../actions";
 import { ActionForm, CredentialsResult, Field, SubmitButton } from "@/components/ui/form";
 import { Alert, Badge, Card, CardHeader, DownloadLink, EmptyState, PageHeader, Pagination, TableWrap } from "@/components/ui/primitives";
@@ -68,7 +69,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field name="role" as="select" label="Role" required options={ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r as Role] }))} />
                 <Field name="full_name" label="Full name" required />
-                <Field name="email" type="email" label="Email" required className="sm:col-span-2" />
+                <Field name="email" type="email" label="Email" required className="sm:col-span-2" hint={`Must end with ${EMAIL_DOMAIN_HINT}`} />
               </div>
               <fieldset className="rounded-lg border border-line p-4">
                 <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">For students only</legend>
